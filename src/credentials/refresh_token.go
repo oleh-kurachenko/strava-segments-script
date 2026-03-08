@@ -18,21 +18,21 @@ func MakeRefreshToken(filePath string) (RefreshToken, error) {
 		return RefreshToken{}, err
 	}
 
-	var credentials RefreshToken
-	err = json.Unmarshal(file, &credentials)
+	var refreshToken RefreshToken
+	err = json.Unmarshal(file, &refreshToken)
 	if err != nil {
 		return RefreshToken{}, err
 	}
 
-	if credentials.ClientID == 0 {
-		return RefreshToken{}, errors.New(`invalid credentials: no client_id`)
+	if refreshToken.ClientID == 0 {
+		return RefreshToken{}, errors.New(`invalid refresh_token json: no client_id`)
 	}
-	if credentials.ClientSecret == "" {
-		return RefreshToken{}, errors.New(`invalid credentials: no client_secret`)
+	if refreshToken.ClientSecret == "" {
+		return RefreshToken{}, errors.New(`invalid refresh_token json: no client_secret`)
 	}
-	if credentials.RefreshToken == "" {
-		return RefreshToken{}, errors.New(`invalid credentials: no refresh_token`)
+	if refreshToken.RefreshToken == "" {
+		return RefreshToken{}, errors.New(`invalid refresh_token json: no refresh_token`)
 	}
 
-	return credentials, nil
+	return refreshToken, nil
 }

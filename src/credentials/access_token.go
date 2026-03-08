@@ -6,9 +6,12 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"time"
 )
+
+const AccessTokenCacheFilename = "access_token_cache.json"
 
 type AccessToken struct {
 	AccessToken  string
@@ -22,7 +25,12 @@ type AccessTokenJson struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-func GetAccessToken(refreshToken RefreshToken) (AccessToken, error) {
+type AccessTokenCacheJson struct {
+	AccessToken string `json:"access_token"`
+	ExpiresAt   int    `json:"expires_at"`
+}
+
+func GetAccessTokenFromRefresh(refreshToken RefreshToken) (AccessToken, error) {
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
 	data.Set("client_id", strconv.Itoa(refreshToken.ClientID))
@@ -52,4 +60,35 @@ func GetAccessToken(refreshToken RefreshToken) (AccessToken, error) {
 		token.RefreshToken = accessToken.RefreshToken
 	}
 	return token, nil
+}
+
+func GetAccessTokenFromCache() (AccessToken, error) {
+	file, err := os.ReadFile(AccessTokenCacheFilename)
+	if err != nil {
+		return AccessToken{}, err
+	}
+
+	var accessToken AccessTokenCacheJson
+	err = json.Unmarshal(file, &accessToken)
+	if err != nil {
+		return AccessToken{}, err
+	}
+
+	if accessToken.AccessToken == "" {
+		return AccessToken{}, fmt.Errorf("invalid %s: no access_token", AccessTokenCacheFilename)
+	}
+	if accessToken.ExpiresAt == 0 {
+		return AccessToken{}, fmt.Errorf("invalid %s: no expires_at", AccessTokenCacheFilename)
+	}
+
+	return AccessToken{AccessToken: accessToken.AccessToken, ExpiresAt: time.Unix(int64(accessToken.ExpiresAt), 0)}, nil
+}
+
+func SaveAccessTokenToCache(accessToken AccessToken) error {
+	accessTokenJson := AccessTokenCacheJson{AccessToken: accessToken.AccessToken, ExpiresAt: int(accessToken.ExpiresAt.Unix())}
+	file, err := json.MarshalIndent(&accessTokenJson, "", " ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(AccessTokenCacheFilename, file, 0644)
 }
