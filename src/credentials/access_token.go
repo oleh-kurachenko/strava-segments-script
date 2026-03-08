@@ -7,20 +7,27 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 )
 
 type AccessToken struct {
+	AccessToken  string
+	ExpiresAt    time.Time
+	RefreshToken string
+}
+
+type AccessTokenJson struct {
 	AccessToken  string `json:"access_token"`
 	ExpiresAt    int    `json:"expires_at"`
 	RefreshToken string `json:"refresh_token"`
 }
 
-func GetAccessToken(credentials RefreshToken) (AccessToken, error) {
+func GetAccessToken(refreshToken RefreshToken) (AccessToken, error) {
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
-	data.Set("client_id", strconv.Itoa(credentials.ClientID))
-	data.Set("client_secret", credentials.ClientSecret)
-	data.Set("refresh_token", credentials.RefreshToken)
+	data.Set("client_id", strconv.Itoa(refreshToken.ClientID))
+	data.Set("client_secret", refreshToken.ClientSecret)
+	data.Set("refresh_token", refreshToken.RefreshToken)
 
 	resp, err := http.PostForm("https://www.strava.com/api/v3/oauth/token", data)
 	if err != nil {
@@ -35,10 +42,14 @@ func GetAccessToken(credentials RefreshToken) (AccessToken, error) {
 		return AccessToken{}, fmt.Errorf("API returned status %s", resp.Status)
 	}
 
-	var accessToken AccessToken
+	var accessToken AccessTokenJson
 	if err := json.NewDecoder(resp.Body).Decode(&accessToken); err != nil {
 		return AccessToken{}, err
 	}
 
-	return accessToken, nil
+	token := AccessToken{AccessToken: accessToken.AccessToken, ExpiresAt: time.Unix(int64(accessToken.ExpiresAt), 0)}
+	if accessToken.RefreshToken != refreshToken.RefreshToken {
+		token.RefreshToken = accessToken.RefreshToken
+	}
+	return token, nil
 }
