@@ -30,14 +30,17 @@ type AccessTokenCacheJson struct {
 	ExpiresAt   int    `json:"expires_at"`
 }
 
-func GetAccessTokenFromRefresh(refreshToken RefreshToken) (AccessToken, error) {
+func GetAccessTokenFromRefresh(refreshToken RefreshToken) (AccessToken,
+	error) {
+
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
 	data.Set("client_id", strconv.Itoa(refreshToken.ClientID))
 	data.Set("client_secret", refreshToken.ClientSecret)
 	data.Set("refresh_token", refreshToken.RefreshToken)
 
-	resp, err := http.PostForm("https://www.strava.com/api/v3/oauth/token", data)
+	resp, err := http.PostForm("https://www.strava.com/api/v3/oauth/token",
+		data)
 	if err != nil {
 		return AccessToken{}, err
 	}
@@ -55,7 +58,8 @@ func GetAccessTokenFromRefresh(refreshToken RefreshToken) (AccessToken, error) {
 		return AccessToken{}, err
 	}
 
-	token := AccessToken{AccessToken: accessToken.AccessToken, ExpiresAt: time.Unix(int64(accessToken.ExpiresAt), 0)}
+	token := AccessToken{AccessToken: accessToken.AccessToken,
+		ExpiresAt: time.Unix(int64(accessToken.ExpiresAt), 0)}
 	if accessToken.RefreshToken != refreshToken.RefreshToken {
 		token.RefreshToken = accessToken.RefreshToken
 	}
@@ -75,17 +79,23 @@ func GetAccessTokenFromCache() (AccessToken, error) {
 	}
 
 	if accessToken.AccessToken == "" {
-		return AccessToken{}, fmt.Errorf("invalid %s: no access_token", AccessTokenCacheFilename)
+		return AccessToken{}, fmt.Errorf("invalid %s: no access_token",
+			AccessTokenCacheFilename)
 	}
 	if accessToken.ExpiresAt == 0 {
-		return AccessToken{}, fmt.Errorf("invalid %s: no expires_at", AccessTokenCacheFilename)
+		return AccessToken{}, fmt.Errorf("invalid %s: no expires_at",
+			AccessTokenCacheFilename)
 	}
 
-	return AccessToken{AccessToken: accessToken.AccessToken, ExpiresAt: time.Unix(int64(accessToken.ExpiresAt), 0)}, nil
+	return AccessToken{AccessToken: accessToken.AccessToken,
+			ExpiresAt: time.Unix(int64(accessToken.ExpiresAt), 0)},
+		nil
 }
 
 func SaveAccessTokenToCache(accessToken AccessToken) error {
-	accessTokenJson := AccessTokenCacheJson{AccessToken: accessToken.AccessToken, ExpiresAt: int(accessToken.ExpiresAt.Unix())}
+	accessTokenJson := AccessTokenCacheJson{
+		AccessToken: accessToken.AccessToken,
+		ExpiresAt:   int(accessToken.ExpiresAt.Unix())}
 	file, err := json.MarshalIndent(&accessTokenJson, "", " ")
 	if err != nil {
 		return err

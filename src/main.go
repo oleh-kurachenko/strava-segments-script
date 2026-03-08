@@ -7,7 +7,8 @@ import (
 )
 
 func main() {
-	accessTokenProvider, err := credentials.NewAccessTokenProvider("local/credentials.json")
+	accessTokenProvider, err :=
+		credentials.NewAccessTokenProvider("local/credentials.json")
 	if err != nil {
 		log.Fatal(err)
 	}

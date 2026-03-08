@@ -13,7 +13,9 @@ type AccessTokenProvider struct {
 	AccessToken          *AccessToken
 }
 
-func NewAccessTokenProvider(refreshTokenJsonPath string) (*AccessTokenProvider, error) {
+func NewAccessTokenProvider(refreshTokenJsonPath string) (
+	*AccessTokenProvider, error) {
+
 	refreshToken, err := MakeRefreshToken(refreshTokenJsonPath)
 	if err != nil {
 		return nil, err
@@ -24,7 +26,9 @@ func NewAccessTokenProvider(refreshTokenJsonPath string) (*AccessTokenProvider, 
 		return nil, err
 	}
 
-	if accessToken.ExpiresAt.Before(time.Now()) || errors.Is(err, os.ErrNotExist) {
+	if accessToken.ExpiresAt.Before(time.Now()) || errors.Is(err,
+		os.ErrNotExist) {
+
 		accessToken, err = GetAccessTokenFromRefresh(refreshToken)
 		if err != nil {
 			return nil, err
@@ -35,5 +39,9 @@ func NewAccessTokenProvider(refreshTokenJsonPath string) (*AccessTokenProvider, 
 		// TODO updated refresh token if changed
 	}
 
-	return &AccessTokenProvider{RefreshTokenJsonPath: refreshTokenJsonPath, RefreshToken: &refreshToken, AccessToken: &accessToken}, nil
+	return &AccessTokenProvider{
+			RefreshTokenJsonPath: refreshTokenJsonPath,
+			RefreshToken:         &refreshToken,
+			AccessToken:          &accessToken},
+		nil
 }

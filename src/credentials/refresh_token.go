@@ -25,13 +25,16 @@ func MakeRefreshToken(filePath string) (RefreshToken, error) {
 	}
 
 	if refreshToken.ClientID == 0 {
-		return RefreshToken{}, errors.New(`invalid refresh_token json: no client_id`)
+		return RefreshToken{},
+			errors.New(`invalid refresh_token json: no client_id`)
 	}
 	if refreshToken.ClientSecret == "" {
-		return RefreshToken{}, errors.New(`invalid refresh_token json: no client_secret`)
+		return RefreshToken{},
+			errors.New(`invalid refresh_token json: no client_secret`)
 	}
 	if refreshToken.RefreshToken == "" {
-		return RefreshToken{}, errors.New(`invalid refresh_token json: no refresh_token`)
+		return RefreshToken{},
+			errors.New(`invalid refresh_token json: no refresh_token`)
 	}
 
 	return refreshToken, nil
