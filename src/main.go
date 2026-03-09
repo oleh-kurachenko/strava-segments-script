@@ -14,16 +14,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	//segments, err := stravaapi.GetStarredSegments(accessTokenProvider)
-	//
-	//fmt.Println("segments count: ", len(segments))
-	//for _, segment := range segments {
-	//	fmt.Println(segment)
-	//}
+	segments, err := stravaapi.GetStarredSegments(accessTokenProvider)
 
-	segment, err := stravaapi.GetSegment(accessTokenProvider, 27704369)
-	if err != nil {
+	if err := segments[0].Augment(accessTokenProvider); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(segment)
+
+	fmt.Println("segments count: ", len(segments))
+	for _, segment := range segments {
+		fmt.Println(segment)
+	}
+
+	//segment, err := stravaapi.GetSegment(accessTokenProvider, 27704369)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//fmt.Println(segment)
 }
