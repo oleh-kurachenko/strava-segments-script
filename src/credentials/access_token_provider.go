@@ -28,15 +28,7 @@ func NewAccessTokenProvider(refreshTokenJsonPath string) (
 
 	if accessToken.ExpiresAt.Before(time.Now()) || errors.Is(err,
 		os.ErrNotExist) {
-
-		accessToken, err = GetAccessTokenFromRefresh(refreshToken)
-		if err != nil {
-			return nil, err
-		}
-		if err := SaveAccessTokenToCache(accessToken); err != nil {
-			log.Fatal(err)
-		}
-		// TODO updated refresh token if changed
+		accessToken, err = getAccessTokenFromRefresh(refreshToken)
 	}
 
 	return &AccessTokenProvider{
@@ -44,4 +36,33 @@ func NewAccessTokenProvider(refreshTokenJsonPath string) (
 			RefreshToken:         &refreshToken,
 			AccessToken:          &accessToken},
 		nil
+}
+
+func (provider *AccessTokenProvider) GetAccessToken(timeout time.Duration) (
+	accessToken string, err error) {
+
+	if provider.AccessToken.ExpiresAt.Before(time.Now().Add(timeout)) {
+		*provider.AccessToken, err = getAccessTokenFromRefresh(
+			*provider.RefreshToken)
+		if err != nil {
+			return accessToken, err
+		}
+	}
+
+	return provider.AccessToken.AccessToken, nil
+}
+
+func getAccessTokenFromRefresh(refreshToken RefreshToken) (
+	accessToken AccessToken, err error) {
+
+	accessToken, err = GetAccessTokenFromRefresh(refreshToken)
+	if err != nil {
+		return AccessToken{}, err
+	}
+	if err := SaveAccessTokenToCache(accessToken); err != nil {
+		log.Fatal(err)
+	}
+	// TODO updated refresh token if changed
+
+	return accessToken, nil
 }

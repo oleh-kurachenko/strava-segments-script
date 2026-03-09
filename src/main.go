@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"strava-segments-script/credentials"
+	"strava-segments-script/stravaapi"
 )
 
 func main() {
@@ -13,5 +13,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(accessTokenProvider)
+	stravaapi.MakeSampleRequest(accessTokenProvider)
 }
