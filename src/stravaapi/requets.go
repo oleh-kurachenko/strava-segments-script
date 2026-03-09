@@ -2,27 +2,69 @@ package stravaapi
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strava-segments-script/credentials"
+	"strconv"
 	"time"
 )
 
 const RequestTimeout = time.Second * 10
 const APIURL = "https://www.strava.com/api/v3/"
 
-func MakeSampleRequest(accessTokenProvider *credentials.
-AccessTokenProvider) error {
+type StarredSegmentJson struct {
+	Id           int                        `json:"id"`
+	Name         string                     `json:"name"`
+	ActivityType string                     `json:"activity_type"`
+	Distance     float64                    `json:"distance"`
+	City         string                     `json:"city"`
+	Country      string                     `json:"country"`
+	PrEffort     StarredSegmentPrEffortJson `json:"athlete_pr_effort"`
+}
+
+type StarredSegmentPrEffortJson struct {
+	ElapsedTime int  `json:"elapsed_time"`
+	IsKom       bool `json:"is_kom"`
+}
+
+type FullSegmentJson struct {
+	Id           int                 `json:"id"`
+	EffortCount  int                 `json:"effort_count"`
+	AthleteCount int                 `json:"athlete_count"`
+	StarCount    int                 `json:"star_count"`
+	Xom          FullSegmentXomsJson `json:"xoms"`
+}
+
+type FullSegmentXomsJson struct {
+	Xom string `json:"overall"`
+}
+
+func MakeRequest(accessTokenProvider *credentials.AccessTokenProvider,
+	urlPath string, urlParams map[string]string) (
+	responseBody []byte, err error) {
+
+	parsedUrl, err := url.Parse(APIURL + urlPath)
+	if err != nil {
+		return nil, err
+	}
+
+	params := url.Values{}
+	for k, v := range urlParams {
+		params.Add(k, v)
+	}
+	parsedUrl.RawQuery = params.Encode()
 
 	ctx, cancel := context.WithTimeout(context.Background(), RequestTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", APIURL+"athlete", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", parsedUrl.String(), nil)
 	if err != nil {
 		log.Println(err)
-		return err
+		return nil, err
 	}
 
 	accessToken, err := accessTokenProvider.GetAccessToken(RequestTimeout)
@@ -30,19 +72,63 @@ AccessTokenProvider) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
 	}(resp.Body)
 
-	responseBody, err := io.ReadAll(resp.Body)
+	responseBodyRaw, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("response status: %s", resp.Status)
 	}
 
-	fmt.Printf("Status: %s\n", resp.Status)
-	fmt.Printf("Response: %s\n", string(responseBody))
+	return responseBodyRaw, nil
+}
 
-	return nil
+func GetStarredSegments(accessTokenProvider *credentials.
+AccessTokenProvider) (segments []StarredSegmentJson, err error) {
+
+	segments = make([]StarredSegmentJson, 0)
+
+	for i := 1; ; i++ {
+		data, err := MakeRequest(
+			accessTokenProvider, "/segments/starred", map[string]string{
+				"page":     strconv.Itoa(i),
+				"per_page": "200",
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		// TODO pass Reader
+		var segmentsPage []StarredSegmentJson
+		if err := json.Unmarshal(data, &segmentsPage); err != nil {
+			return nil, err
+		}
+
+		if len(segmentsPage) == 0 {
+			break
+		}
+
+		segments = append(segments, segmentsPage...)
+	}
+
+	return segments, nil
+}
+
+func GetSegment(accessTokenProvider *credentials.AccessTokenProvider,
+	segmentId int) (segment StarredSegmentJson, err error) {
+	data, err := MakeRequest(accessTokenProvider,
+		"/segments/"+strconv.Itoa(segmentId), nil)
+	if err != nil {
+		return segment, err
+	}
+
+	fmt.Println(string(data))
+
+	return segment, nil
 }
