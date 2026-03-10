@@ -12,7 +12,7 @@ import (
 const SegmentCacheTTL = time.Hour * 24 * 7
 const SegmentCacheNamespace = "stravaapi:segment:"
 
-func PutSegmentInCache(client redis.Client, segment Segment) error {
+func PutSegmentInCache(client *redis.Client, segment Segment) error {
 	segmentJson, err := json.Marshal(segment)
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ func PutSegmentInCache(client redis.Client, segment Segment) error {
 	return nil
 }
 
-func GetSegmentFromCache(client redis.Client, id int) (segment Segment,
+func GetSegmentFromCache(client *redis.Client, id int) (segment Segment,
 	err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

@@ -31,11 +31,11 @@ func main() {
 		Password: "",
 		DB:       0,
 	})
-	//if err := stravaapi.PutSegmentInCache(*redisClient, segments[0]); err != nil {
+	//if err := stravaapi.PutSegmentInCache(redisClient, segments[0]); err != nil {
 	//	log.Fatal(err)
 	//}
 
-	segment, err := stravaapi.GetSegmentFromCache(*redisClient, 27704369)
+	segment, err := stravaapi.GetSegmentFromCache(redisClient, 27704369)
 	if err != nil {
 		log.Fatal(err)
 	}
