@@ -1,3 +1,5 @@
 .idea/**
 
-local/notes.md
+access_token_cache.json
+
+local/**
