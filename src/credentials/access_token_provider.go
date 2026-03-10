@@ -2,18 +2,32 @@ package credentials
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type AccessTokenProvider struct {
 	RefreshTokenJsonPath string
 	RefreshToken         *RefreshToken
 	AccessToken          *AccessToken
+	APICallCounter       *APICallCounter
 }
 
-func NewAccessTokenProvider(refreshTokenJsonPath string) (
+type APILimitExceededError struct {
+	DurationUntilReset time.Duration
+}
+
+func (e *APILimitExceededError) Error() string {
+	return fmt.Sprintf("API limit exceeded, duration until reset: %s",
+		e.DurationUntilReset)
+}
+
+func NewAccessTokenProvider(refreshTokenJsonPath string,
+	redisClient *redis.Client) (
 	*AccessTokenProvider, error) {
 
 	refreshToken, err := MakeRefreshToken(refreshTokenJsonPath)
@@ -34,7 +48,8 @@ func NewAccessTokenProvider(refreshTokenJsonPath string) (
 	return &AccessTokenProvider{
 			RefreshTokenJsonPath: refreshTokenJsonPath,
 			RefreshToken:         &refreshToken,
-			AccessToken:          &accessToken},
+			AccessToken:          &accessToken,
+			APICallCounter:       NewAPICallCounter(redisClient)},
 		nil
 }
 
@@ -45,8 +60,17 @@ func (provider *AccessTokenProvider) GetAccessToken(timeout time.Duration) (
 		*provider.AccessToken, err = getAccessTokenFromRefresh(
 			*provider.RefreshToken)
 		if err != nil {
-			return accessToken, err
+			return "", err
 		}
+	}
+
+	aPILimitIsFine, aPILimitTTL, err := provider.APICallCounter.IsFine()
+	if err != nil {
+		return "", err
+	}
+
+	if !aPILimitIsFine {
+		return "", &APILimitExceededError{DurationUntilReset: aPILimitTTL}
 	}
 
 	return provider.AccessToken.AccessToken, nil

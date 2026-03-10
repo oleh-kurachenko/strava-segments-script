@@ -21,33 +21,37 @@ func NewAPICallCounter(client *redis.Client) (counter *APICallCounter) {
 	return counter
 }
 
-func (counter *APICallCounter) getValue() (counterVal int, err error) {
+func (counter *APICallCounter) getValue() (counterVal int,
+	tTL time.Duration, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	counterTTL, err := counter.redisClient.TTL(ctx, counterReadKey).Result()
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
 	if counterTTL == -2 {
-		return 0, nil
+		return 0, 0, nil
 	}
 
-	return counter.redisClient.Get(ctx, counterReadKey).Int()
+	counterVal, err = counter.redisClient.Get(ctx, counterReadKey).Int()
+	return counterVal, counterTTL, err
 }
 
-func (counter *APICallCounter) IsFine() (bool, error) {
-	counterVal, err := counter.getValue()
+func (counter *APICallCounter) IsFine() (isFine bool, tTL time.Duration,
+	err error) {
+
+	counterVal, tTL, err := counter.getValue()
 	if err != nil {
-		return false, err
+		return false, tTL, err
 	}
 
-	return counterVal < counterReadLimit, nil
+	return counterVal < counterReadLimit, tTL, nil
 }
 
 func (counter *APICallCounter) Increment() error {
-	counterVal, err := counter.getValue()
+	counterVal, _, err := counter.getValue()
 	if err != nil {
 		return err
 	}

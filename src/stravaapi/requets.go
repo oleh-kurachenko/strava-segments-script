@@ -68,6 +68,9 @@ func MakeRequest(accessTokenProvider *credentials.AccessTokenProvider,
 	}
 
 	accessToken, err := accessTokenProvider.GetAccessToken(RequestTimeout)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	resp, err := http.DefaultClient.Do(req)
@@ -90,7 +93,7 @@ func MakeRequest(accessTokenProvider *credentials.AccessTokenProvider,
 }
 
 func GetStarredSegmentJsons(accessTokenProvider *credentials.
-	AccessTokenProvider) ([]StarredSegmentJson, error) {
+AccessTokenProvider) ([]StarredSegmentJson, error) {
 
 	segments := make([]StarredSegmentJson, 0)
 
