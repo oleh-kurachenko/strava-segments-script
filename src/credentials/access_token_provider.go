@@ -73,6 +73,9 @@ func (provider *AccessTokenProvider) GetAccessToken(timeout time.Duration) (
 		return "", &APILimitExceededError{DurationUntilReset: aPILimitTTL}
 	}
 
+	if err := provider.APICallCounter.Increment(); err != nil {
+		return "", err
+	}
 	return provider.AccessToken.AccessToken, nil
 }
 

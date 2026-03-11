@@ -47,3 +47,10 @@ func GetSegmentFromCache(client *redis.Client, id int) (segment Segment,
 
 	return segment, nil
 }
+
+func DeleteSegmentFromCache(client *redis.Client, segmentId int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	return client.Del(ctx, SegmentCacheNamespace+strconv.Itoa(segmentId)).Err()
+}

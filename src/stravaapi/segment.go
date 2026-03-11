@@ -1,9 +1,12 @@
 package stravaapi
 
 import (
+	"log"
 	"strava-segments-script/credentials"
 	"strings"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type Segment struct {
@@ -22,26 +25,52 @@ type Segment struct {
 }
 
 // Augment Segment with detailed data
-func (s *Segment) Augment(ac *credentials.AccessTokenProvider) error {
+func (s *Segment) Augment(rc *redis.Client, ac *credentials.
+	AccessTokenProvider) error {
+	cachedSegment, err := GetSegmentFromCache(rc, s.Id)
+	if err == nil {
+		if cachedSegment.Name == s.Name &&
+			cachedSegment.Distance == s.Distance &&
+			cachedSegment.City == s.City &&
+			cachedSegment.Country == s.Country &&
+			cachedSegment.MyTime == s.MyTime &&
+			cachedSegment.HasXom == s.HasXom {
+
+			*s = cachedSegment
+			return nil
+		}
+
+		if err := DeleteSegmentFromCache(rc, s.Id); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	detailedSegment, err := GetSegment(ac, s.Id)
 	if err != nil {
 		return err
 	}
 
 	timeStrParts := strings.Split(detailedSegment.Xom.Xom, ":")
-	leadingZeros := make([]string, 3-len(timeStrParts))
-	for i := range leadingZeros {
-		leadingZeros[i] = "0"
+	timeStr := timeStrParts[len(timeStrParts)-1]
+	if len(timeStrParts) != 1 {
+		leadingZeros := make([]string, 3-len(timeStrParts))
+		for i := range leadingZeros {
+			leadingZeros[i] = "0"
+		}
+		timeStrParts = append(leadingZeros, timeStrParts...)
+		timeStr = timeStrParts[0] + "h" + timeStrParts[1] + "m" + timeStrParts[2] + "s"
 	}
-	timeStrParts = append(leadingZeros, timeStrParts...)
-	s.XomTime, err = time.ParseDuration(
-		timeStrParts[0] + "h" + timeStrParts[1] + "m" + timeStrParts[2] + "s")
+	s.XomTime, err = time.ParseDuration(timeStr)
 	if err != nil {
 		return err
 	}
 	s.EffortCount = detailedSegment.EffortCount
 	s.AthleteCount = detailedSegment.AthleteCount
 	s.StarCount = detailedSegment.StarCount
+
+	if err := PutSegmentInCache(rc, *s); err != nil {
+		log.Fatal(err)
+	}
 
 	return nil
 }

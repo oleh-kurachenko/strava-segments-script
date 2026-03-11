@@ -1,55 +1,60 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"strava-segments-script/credentials"
 	"strava-segments-script/stravaapi"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
 
 func main() {
-	//accessTokenProvider, err :=
-	//	credentials.NewAccessTokenProvider("local/credentials.json")
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-
-	//segments, err := stravaapi.GetStarredSegments(accessTokenProvider)
-	//
-	//if err := segments[0].Augment(accessTokenProvider); err != nil {
-	//	log.Fatal(err)
-	//}
-
-	//fmt.Println("segments count: ", len(segments))
-	//for _, segment := range segments {
-	//	fmt.Println(segment)
-	//}
-
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,
 	})
-	//if err := stravaapi.PutSegmentInCache(redisClient, segments[0]); err != nil {
-	//	log.Fatal(err)
-	//}
-
-	segment, err := stravaapi.GetSegmentFromCache(redisClient, 27704369)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, err := redisClient.Ping(ctx).Result()
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%v\n", segment)
 
-	if err := redisClient.Close(); err != nil {
+	accessTokenProvider, err :=
+		credentials.NewAccessTokenProvider("local/credentials.json",
+			redisClient)
+	if err != nil {
 		log.Fatal(err)
 	}
 
-	//fmt.Print(segments[0].Id)
+	segments, err := stravaapi.GetStarredSegments(accessTokenProvider)
 
-	//segment, err := stravaapi.GetSegment(accessTokenProvider, 27704369)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//fmt.Println(segment)
+	notHasXomCount := 0
+	for i := range segments {
+		if !segments[i].HasXom {
+			if err := segments[i].Augment(redisClient,
+				accessTokenProvider); err != nil {
+
+				log.Fatal(err)
+			}
+
+			notHasXomCount++
+		}
+	}
+
+	fmt.Printf("do not have XOM on %d segments of %d starred\n",
+		notHasXomCount, len(segments))
+	for i := range segments {
+		if !segments[i].HasXom {
+			fmt.Printf("- \"%s\" : %v -> %v on %vm distance\n",
+				segments[i].Name,
+				segments[i].MyTime,
+				segments[i].XomTime,
+				segments[i].Distance)
+		}
+	}
 }

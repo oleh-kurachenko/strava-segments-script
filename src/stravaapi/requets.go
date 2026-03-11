@@ -135,7 +135,5 @@ func GetSegment(accessTokenProvider *credentials.AccessTokenProvider,
 		return segment, err
 	}
 
-	fmt.Println(segment)
-
 	return segment, nil
 }
