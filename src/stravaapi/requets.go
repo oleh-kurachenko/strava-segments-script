@@ -93,7 +93,7 @@ func MakeRequest(accessTokenProvider *credentials.AccessTokenProvider,
 }
 
 func GetStarredSegmentJsons(accessTokenProvider *credentials.
-AccessTokenProvider) ([]StarredSegmentJson, error) {
+	AccessTokenProvider) ([]StarredSegmentJson, error) {
 
 	segments := make([]StarredSegmentJson, 0)
 
