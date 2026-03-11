@@ -117,16 +117,6 @@ func presentData(segs SegmentsByTerrain) {
 			presentSegment(seg)
 		}
 	}
-
-	//for i := range segments {
-	//	if !segments[i].HasXom {
-	//		fmt.Printf("- \"%s\" : %v -> %v on %vm distance\n",
-	//			segments[i].Name,
-	//			segments[i].MyTime,
-	//			segments[i].XomTime,
-	//			segments[i].Distance)
-	//	}
-	//}
 }
 
 func main() {
